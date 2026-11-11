@@ -1,0 +1,21 @@
+﻿from django.contrib import admin
+from django.urls import path
+from django.contrib.auth import views as auth_views
+from users.views import register_view, profile_view, follow_toggle_view, search_users_view
+from posts.views import feed_view, create_post_view, like_post_view, add_comment_view
+from django.conf import settings
+from django.conf.urls.static import static
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('', feed_view, name='home'),
+    path('search/', search_users_view, name='search_users'),
+    path('create/', create_post_view, name='create_post'),
+    path('like/<int:post_id>/', like_post_view, name='like_post'),
+    path('comment/<int:post_id>/', add_comment_view, name='add_comment'),
+    path('profile/<str:username>/', profile_view, name='profile'),
+    path('follow/<str:username>/', follow_toggle_view, name='follow_toggle'),
+    path('register/', register_view, name='register'),
+    path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

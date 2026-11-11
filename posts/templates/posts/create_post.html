@@ -1,0 +1,26 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>New Post - Momento</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fafafa; display: flex; justify-content: center; padding-top: 60px; margin: 0; }
+        .box { background: #fff; border: 1px solid #dbdbdb; border-radius: 12px; padding: 28px; width: 100%; max-width: 400px; }
+        input, textarea { width: 100%; padding: 10px; margin-top: 6px; margin-bottom: 16px; border: 1px solid #dbdbdb; border-radius: 8px; box-sizing: border-box; font-family: inherit; }
+        button { width: 100%; background: #0095f6; color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0;">Share a Moment</h2>
+            <a href="/" style="color:#8e8e8e; text-decoration:none; font-size:14px;">Cancel</a>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Post to Momento</button>
+        </form>
+    </div>
+</body>
+</html>

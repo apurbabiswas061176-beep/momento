@@ -1,0 +1,92 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Momento</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fafafa; margin: 0; color: #262626; }
+        nav { background: #fff; border-bottom: 1px solid #dbdbdb; position: sticky; top: 0; z-index: 10; }
+        .nav-inner { max-width: 760px; margin: 0 auto; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .logo { font-size: 24px; font-weight: 800; text-decoration: none; background: linear-gradient(45deg, #833ab4, #fd1d1d, #fcb045); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .nav-search { display: flex; align-items: center; gap: 6px; flex: 1; max-width: 240px; }
+        .nav-search input { width: 100%; padding: 6px 10px; border: 1px solid #dbdbdb; border-radius: 8px; font-size: 13px; background: #fafafa; outline: none; }
+        .nav-search button { background: #efefef; border: 1px solid #dbdbdb; padding: 6px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .nav-links { display: flex; align-items: center; gap: 12px; }
+        .btn-primary { background: #0095f6; color: #fff; padding: 7px 12px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 13px; border: none; cursor: pointer; white-space: nowrap; }
+        .btn-primary:hover { background: #1877f2; }
+        .btn-logout { background: none; border: none; color: #ed4956; font-weight: 600; cursor: pointer; font-size: 13px; }
+        main { max-width: 480px; margin: 24px auto; padding: 0 16px; }
+        .card { background: #fff; border: 1px solid #dbdbdb; border-radius: 12px; margin-bottom: 24px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .card-header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .card img { width: 100%; max-height: 550px; object-fit: cover; display: block; background: #efefef; }
+        .card-body { padding: 12px 16px; font-size: 14px; line-height: 1.4; }
+        .actions { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .like-btn { background: none; border: none; cursor: pointer; font-size: 20px; padding: 0; }
+        .comments { margin-top: 10px; border-top: 1px solid #efefef; padding-top: 8px; }
+        .comment-item { font-size: 13px; margin-bottom: 4px; }
+        .comment-form { display: flex; border-top: 1px solid #efefef; margin-top: 10px; padding-top: 10px; }
+        .comment-form input { flex: 1; border: none; outline: none; font-size: 13px; }
+        .comment-form button { background: none; border: none; color: #0095f6; font-weight: 600; cursor: pointer; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-inner">
+            <a href="/" class="logo">Momento</a>
+            <form action="/search/" method="get" class="nav-search">
+                <input type="text" name="q" placeholder="Search users...">
+                <button type="submit">Search</button>
+            </form>
+            <div class="nav-links">
+                <a href="/search/" style="font-size:13px; font-weight:600; color:#262626; text-decoration:none;">Discover</a>
+                <a href="/create/" class="btn-primary">+ New Post</a>
+                <a href="/profile/{{ request.user.username }}/" style="font-size: 13px; font-weight: 600; color: #262626; text-decoration: none;">@{{ request.user.username }}</a>
+                <form action="/logout/" method="post" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    <main>
+        {% for post in posts %}
+        <article class="card">
+            <div class="card-header">
+                <a href="/profile/{{ post.author.username }}/" style="font-weight: 700; color: #262626; text-decoration: none;">@{{ post.author.username }}</a>
+                <span style="color: #8e8e8e; font-size: 12px;">{{ post.created_at|timesince }} ago</span>
+            </div>
+            <img src="{{ post.image.url }}" alt="Post">
+            <div class="card-body">
+                <div class="actions">
+                    <form action="/like/{{ post.id }}/" method="post" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" class="like-btn">
+                            {% if request.user in post.likes.all %}❤️{% else %}🤍{% endif %}
+                        </button>
+                    </form>
+                    <strong style="font-size: 13px;">{{ post.total_likes }} likes</strong>
+                </div>
+                {% if post.caption %}
+                <p style="margin: 4px 0;"><a href="/profile/{{ post.author.username }}/" style="font-weight: 700; color: #262626; text-decoration: none;">@{{ post.author.username }}</a> {{ post.caption }}</p>
+                {% endif %}
+
+                <div class="comments">
+                    {% for comment in post.comments.all %}
+                    <div class="comment-item">
+                        <strong>@{{ comment.author.username }}</strong> {{ comment.text }}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <form action="/comment/{{ post.id }}/" method="post" class="comment-form">
+                    {% csrf_token %}
+                    <input type="text" name="text" placeholder="Add a comment..." required>
+                    <button type="submit">Post</button>
+                </form>
+            </div>
+        </article>
+        {% endfor %}
+    </main>
+</body>
+</html>

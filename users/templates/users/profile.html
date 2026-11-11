@@ -12,6 +12,8 @@
         .container { max-width: 700px; margin: 28px auto; padding: 0 16px; }
         .profile-header { background: #fff; border: 1px solid #dbdbdb; border-radius: 12px; padding: 24px; margin-bottom: 24px; }
         .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .dp-section { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+        .dp-img { width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid #dbdbdb; background: #efefef; }
         .stats { display: flex; gap: 24px; font-size: 15px; margin-bottom: 14px; }
         .btn { padding: 7px 16px; border-radius: 8px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; text-decoration: none; }
         .btn-blue { background: #0095f6; color: #fff; }
@@ -34,18 +36,32 @@
 
     <div class="container">
         <div class="profile-header">
-            <div class="top-row">
-                <h2 style="margin:0;">@{{ profile_user.username }}</h2>
-                {% if request.user != profile_user %}
-                <form action="/follow/{{ profile_user.username }}/" method="post" style="margin:0;">
-                    {% csrf_token %}
-                    {% if is_following %}
-                        <button type="submit" class="btn btn-gray">Following</button>
-                    {% else %}
-                        <button type="submit" class="btn btn-blue">Follow</button>
-                    {% endif %}
-                </form>
+            <div class="dp-section">
+                {% if profile_user.profile_pic %}
+                    <img src="{{ profile_user.profile_pic.url }}" alt="DP" class="dp-img">
+                {% else %}
+                    <div class="dp-img"></div>
                 {% endif %}
+
+                <div>
+                    <h2 style="margin:0 0 8px 0;">@{{ profile_user.username }}</h2>
+                    {% if request.user == profile_user %}
+                        <form method="post" enctype="multipart/form-data" style="margin:0;">
+                            {% csrf_token %}
+                            <input type="file" id="dpInput" name="profile_pic" accept="image/*" style="display:none;" onchange="this.form.submit()">
+                            <button type="button" class="btn btn-blue" onclick="document.getElementById('dpInput').click()">Change DP</button>
+                        </form>
+                    {% else %}
+                        <form action="/follow/{{ profile_user.username }}/" method="post" style="margin:0;">
+                            {% csrf_token %}
+                            {% if is_following %}
+                                <button type="submit" class="btn btn-gray">Following</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-blue">Follow</button>
+                            {% endif %}
+                        </form>
+                    {% endif %}
+                </div>
             </div>
 
             <div class="stats">
@@ -57,11 +73,11 @@
             <p style="margin:0 0 12px 0; font-size:14px; line-height:1.4;">{{ profile_user.bio|default:"No bio yet." }}</p>
 
             {% if request.user == profile_user %}
-            <form method="post">
-                {% csrf_token %}
-                <textarea name="bio" rows="2" placeholder="Write a short bio about yourself...">{{ profile_user.bio }}</textarea>
-                <button type="submit" class="btn btn-gray" style="margin-top:8px;">Save Bio</button>
-            </form>
+                <form method="post">
+                    {% csrf_token %}
+                    <textarea name="bio" rows="2" placeholder="Write a short bio about yourself...">{{ profile_user.bio }}</textarea>
+                    <button type="submit" class="btn btn-gray" style="margin-top:8px;">Save Bio</button>
+                </form>
             {% endif %}
         </div>
 

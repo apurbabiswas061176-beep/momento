@@ -1,7 +1,7 @@
 ﻿from django.contrib import admin
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from users.views import register_view, profile_view, follow_toggle_view, search_users_view
+from users.views import register_view, profile_view, follow_toggle_view, search_users_view, api_signup, api_login
 from posts.views import feed_view, create_post_view, like_post_view, add_comment_view
 from django.conf import settings
 from django.conf.urls.static import static
@@ -18,4 +18,6 @@ urlpatterns = [
     path('register/', register_view, name='register'),
     path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('api/signup/', api_signup, name='api_signup'),
+path('api/login/', api_login, name='api_login'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

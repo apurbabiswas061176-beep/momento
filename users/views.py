@@ -48,3 +48,37 @@ def search_users_view(request):
     else:
         users = CustomUser.objects.exclude(id=request.user.id).order_by('-date_joined')[:20]
     return render(request, 'users/search.html', {'users': users, 'query': query})
+import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate
+
+@csrf_exempt
+def api_signup(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        username = data.get('username', '').strip()
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        if not email or not password:
+            return JsonResponse({'error': 'Email and password are required'}, status=400)
+        if CustomUser.objects.filter(email=email).exists() or CustomUser.objects.filter(username=email).exists():
+            return JsonResponse({'error': 'Email is already registered'}, status=400)
+        user = CustomUser.objects.create_user(username=email, email=email, password=password)
+        if hasattr(user, 'first_name'):
+            user.first_name = username
+            user.save()
+        return JsonResponse({'username': username or email.split('@')[0], 'email': user.email})
+    return JsonResponse({'error': 'POST required'}, status=405)
+
+@csrf_exempt
+def api_login(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        user = authenticate(username=email, password=password)
+        if user:
+            return JsonResponse({'username': user.first_name or email.split('@')[0], 'email': user.email})
+        return JsonResponse({'error': 'Invalid email or password'}, status=401)
+    return JsonResponse({'error': 'POST required'}, status=405)

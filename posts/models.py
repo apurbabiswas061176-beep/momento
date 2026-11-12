@@ -25,3 +25,11 @@ class Comment(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+class Story(models.Model):
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='stories')
+    image = models.ImageField(upload_to='stories/')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']

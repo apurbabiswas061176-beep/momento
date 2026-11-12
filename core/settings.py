@@ -39,7 +39,7 @@ INSTALLED_APPS = ['corsheaders',
     'django.contrib.staticfiles',
 ]
 
-MIDDLEWARE = [,
+MIDDLEWARE = [
 'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -171,4 +171,5 @@ STORAGES = {
 'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
 },
 }
+
 

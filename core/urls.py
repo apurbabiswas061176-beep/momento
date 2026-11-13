@@ -2,7 +2,7 @@
 from django.urls import path, re_path
 from django.views.static import serve
 from django.contrib.auth import views as auth_views
-from users.views import register_view, profile_view, follow_toggle_view, search_users_view, api_signup, api_login, api_update_dp
+from users.views import register_view, profile_view, follow_toggle_view, search_users_view, api_signup, api_login, api_update_dp, api_update_mood
 from posts.views import feed_view, create_post_view, like_post_view, add_comment_view, api_create_post, api_create_story, api_feed
 from django.conf import settings
 urlpatterns = [
@@ -19,9 +19,10 @@ path('login/', auth_views.LoginView.as_view(template_name='users/login.html'), n
 path('logout/', auth_views.LogoutView.as_view(), name='logout'),
 path('api/signup/', api_signup, name='api_signup'),
 path('api/login/', api_login, name='api_login'),
-path('api/update-dp/', api_update_dp, name='api_update_dp'),
+path('api/update-dp/', api_update_dp, api_update_mood, name='api_update_dp, api_update_mood'),
 path('api/create-post/', api_create_post, name='api_create_post'),
 path('api/create-story/', api_create_story, name='api_create_story'),
 path('api/feed/', api_feed, name='api_feed'),
 re_path(r'^media/(?P.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+

@@ -97,6 +97,7 @@ def api_login(request):
                 'username': user.first_name or email.split('@')[0],
                 'email': user.email,
                 'bio': user.bio,
+                'mood': user.mood or 'chill',
                 'profile_pic': dp_url
             })
         return JsonResponse({'error': 'Invalid email or password'}, status=401)
@@ -127,3 +128,28 @@ def api_update_dp(request):
     user.save()
     dp_url = request.build_absolute_uri(user.profile_pic.url) if user.profile_pic else ''
     return JsonResponse({'message': 'Profile updated', 'profile_pic': dp_url, 'bio': user.bio})
+
+
+@csrf_exempt
+def api_update_mood(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    email = data.get('email', '').strip().lower()
+    mood = data.get('mood', 'chill').strip().lower()
+
+    valid_moods = {'chill', 'hyped', 'focused', 'nostalgic', 'night_owl'}
+    if mood not in valid_moods:
+        return JsonResponse({'error': 'Invalid mood'}, status=400)
+
+    user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    user.mood = mood
+    user.save()
+    return JsonResponse({'message': 'Mood updated', 'mood': user.mood})

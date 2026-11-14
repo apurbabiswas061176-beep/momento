@@ -123,11 +123,19 @@ def api_update_dp(request):
         return JsonResponse({'error': 'User not found'}, status=404)
     if image_file:
         user.profile_pic = image_file
+    new_username = data.get('username')
+    if new_username is not None and new_username.strip():
+        user.first_name = new_username.strip()
     if bio is not None:
         user.bio = bio
     user.save()
     dp_url = request.build_absolute_uri(user.profile_pic.url) if user.profile_pic else ''
-    return JsonResponse({'message': 'Profile updated', 'profile_pic': dp_url, 'bio': user.bio})
+    return JsonResponse({
+        'message': 'Profile updated',
+        'profile_pic': dp_url,
+        'bio': user.bio,
+        'username': user.first_name or user.username.split('@')[0]
+    })
 
 
 @csrf_exempt
@@ -153,3 +161,4 @@ def api_update_mood(request):
     user.mood = mood
     user.save()
     return JsonResponse({'message': 'Mood updated', 'mood': user.mood})
+

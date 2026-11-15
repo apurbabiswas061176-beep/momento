@@ -11,6 +11,9 @@ https://docs.djangoproject.com/en/6.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+import dj_database_url
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -36,8 +39,11 @@ INSTALLED_APPS = ['corsheaders',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
     'django.contrib.staticfiles',
+    'cloudinary',
 ]
+
 
 MIDDLEWARE = [
 'corsheaders.middleware.CorsMiddleware',
@@ -74,12 +80,11 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=600,
+    )
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
@@ -152,7 +157,6 @@ if os.environ.get('DATABASE_URL'):
 
 # Automatically use Cloudinary CDN for global photo uploads if keys are set
 if os.environ.get('CLOUDINARY_CLOUD_NAME'):
-    INSTALLED_APPS += ['cloudinary_storage', 'cloudinary']
     CLOUDINARY_STORAGE = {
         'CLOUD_NAME': os.environ.get('CLOUDINARY_CLOUD_NAME'),
         'API_KEY': os.environ.get('CLOUDINARY_API_KEY'),
@@ -164,13 +168,12 @@ CSRF_TRUSTED_ORIGINS = ['https://netlify.app', 'https://*.onrender.com']
 DATA_UPLOAD_MAX_MEMORY_SIZE = 16777216
 FILE_UPLOAD_MAX_MEMORY_SIZE = 16777216
 STORAGES = {
-'default': {
-'BACKEND': 'django.core.files.storage.FileSystemStorage',
-},
-'staticfiles': {
-'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
-},
+    'default': {
+        'BACKEND': 'cloudinary_storage.storage.MediaCloudinaryStorage'
+        if os.environ.get('CLOUDINARY_CLOUD_NAME')
+        else 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage',
+    },
 }
-
-
-

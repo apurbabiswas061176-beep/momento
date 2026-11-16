@@ -1,4 +1,4 @@
-﻿import json
+import json
 import base64
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, get_user_model
@@ -246,3 +246,78 @@ def api_linked_friend(request):
         return JsonResponse({'linked_friend': None})
     return JsonResponse({'linked_friend': _get_active_friend_payload(user)})
 
+
+
+from .models import UserMemory
+
+@csrf_exempt
+def api_memories(request):
+    if request.method == 'GET':
+        email = request.GET.get('email', '').strip().lower()
+        user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+        if not user:
+            return JsonResponse({'memories': []})
+        items = [
+            {
+                'id': m.id,
+                'title': m.title,
+                'caption': m.caption,
+                'image_url': m.image.url if m.image else '',
+                'created_at': m.created_at.strftime('%b %d, %Y')
+            }
+            for m in user.memories.all()
+        ]
+        return JsonResponse({'memories': items})
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body or '{}')
+        except Exception:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+        email = data.get('email', '').strip().lower()
+        title = (data.get('title') or 'Memory').strip()[:60]
+        caption = (data.get('caption') or '').strip()[:220]
+        raw_img = data.get('image') or ''
+
+        user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+        if not user:
+            return JsonResponse({'error': 'User not found'}, status=404)
+        if not raw_img:
+            return JsonResponse({'error': 'Please select a photo for your memory'}, status=400)
+
+        img_file = decode_base64_image(raw_img, prefix='memory')
+        if not img_file:
+            return JsonResponse({'error': 'Could not process image'}, status=400)
+
+        mem = UserMemory.objects.create(user=user, title=title or 'Memory', caption=caption, image=img_file)
+        return JsonResponse({
+            'message': 'Memory saved!',
+            'memory': {
+                'id': mem.id,
+                'title': mem.title,
+                'caption': mem.caption,
+                'image_url': mem.image.url,
+                'created_at': mem.created_at.strftime('%b %d, %Y')
+            }
+        })
+
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def api_delete_memory(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    email = data.get('email', '').strip().lower()
+    mem_id = data.get('id')
+    user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    deleted, _ = UserMemory.objects.filter(id=mem_id, user=user).delete()
+    return JsonResponse({'deleted': bool(deleted)})

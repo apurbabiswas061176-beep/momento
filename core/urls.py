@@ -2,7 +2,7 @@
 from django.urls import path, re_path
 from django.views.static import serve
 from django.contrib.auth import views as auth_views
-from users.views import register_view, profile_view, follow_toggle_view, search_users_view, api_signup, api_login, api_update_dp, api_update_mood
+from users.views import register_view, profile_view, follow_toggle_view, search_users_view, api_signup, api_login, api_update_dp, api_update_mood, api_link_friend, api_linked_friend
 from posts.views import feed_view, create_post_view, like_post_view, add_comment_view, api_create_post, api_create_story, api_feed
 from django.conf import settings
 
@@ -26,3 +26,4 @@ urlpatterns = [
     path('api/feed/', api_feed, name='api_feed'),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+

@@ -7,6 +7,9 @@ class CustomUser(AbstractUser):
     is_verified = models.BooleanField(default=False)
     following = models.ManyToManyField('self', symmetrical=False, related_name='followers', blank=True)
     mood = models.CharField(max_length=30, default='chill', blank=True)
+    linked_friend = models.ForeignKey('self', null=True, blank=True, on_delete=models.SET_NULL, related_name='linked_by')
+    link_expires_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         return self.username
+

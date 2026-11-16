@@ -162,3 +162,87 @@ def api_update_mood(request):
     user.save()
     return JsonResponse({'message': 'Mood updated', 'mood': user.mood})
 
+
+from datetime import timedelta
+from django.utils import timezone
+
+def _get_active_friend_payload(user):
+    if user.linked_friend and user.link_expires_at:
+        if timezone.now() < user.link_expires_at:
+            f = user.linked_friend
+            dp_url = f.profile_pic.url if f.profile_pic else '/media/default.jpg'
+            return {
+                'email': f.email,
+                'username': f.first_name or f.username.split('@')[0],
+                'dp': dp_url,
+                'expires_at': user.link_expires_at.isoformat()
+            }
+        else:
+            user.linked_friend = None
+            user.link_expires_at = None
+            user.save(update_fields=['linked_friend', 'link_expires_at'])
+    return None
+
+@csrf_exempt
+def api_link_friend(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    email = data.get('email', '').strip().lower()
+    friend_query = data.get('friend', '').strip().lower()
+    duration = data.get('duration', '1_week').strip()
+
+    user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    if duration == 'unlink' or not friend_query:
+        user.linked_friend = None
+        user.link_expires_at = None
+        user.save(update_fields=['linked_friend', 'link_expires_at'])
+        return JsonResponse({'message': 'Unlinked', 'linked_friend': None})
+
+    durations = {
+        '1_week': timedelta(weeks=1),
+        '3_weeks': timedelta(weeks=3),
+        '1_month': timedelta(days=30),
+    }
+    if duration not in durations:
+        return JsonResponse({'error': 'Invalid duration'}, status=400)
+
+    friend = (
+        CustomUser.objects.filter(email__iexact=friend_query).first()
+        or CustomUser.objects.filter(username__iexact=friend_query).first()
+        or CustomUser.objects.filter(first_name__iexact=friend_query).first()
+    )
+    if not friend:
+        return JsonResponse({'error': 'Friend account not found'}, status=404)
+    if friend.id == user.id:
+        return JsonResponse({'error': 'Cannot link with yourself'}, status=400)
+
+    user.linked_friend = friend
+    user.link_expires_at = timezone.now() + durations[duration]
+    user.save(update_fields=['linked_friend', 'link_expires_at'])
+
+    return JsonResponse({
+        'message': 'Friend linked!',
+        'linked_friend': _get_active_friend_payload(user)
+    })
+
+@csrf_exempt
+def api_linked_friend(request):
+    email = request.GET.get('email', '').strip().lower()
+    if not email and request.method == 'POST':
+        try:
+            email = json.loads(request.body or '{}').get('email', '').strip().lower()
+        except Exception:
+            pass
+    user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not user:
+        return JsonResponse({'linked_friend': None})
+    return JsonResponse({'linked_friend': _get_active_friend_payload(user)})
+

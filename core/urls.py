@@ -1,4 +1,4 @@
-from django.contrib import admin
+﻿from django.contrib import admin
 from django.urls import path, re_path
 from django.views.static import serve
 from django.contrib.auth import views as auth_views
@@ -25,10 +25,14 @@ urlpatterns = [
     path('api/link-friend/', api_link_friend, name='api_link_friend'),
     path('api/linked-friend/', api_linked_friend, name='api_linked_friend'),
     path('api/memories/', api_memories, name='api_memories'),
-    path('api/delete-memory/', api_delete_memory, name='api_delete_memory'),
+    path('api/delete-memory/', api_delete_memory, api_follow_toggle, api_follow_list, api_discover_users, name='api_delete_memory'),
     path('api/create-post/', api_create_post, name='api_create_post'),
     path('api/create-story/', api_create_story, name='api_create_story'),
+        path('api/follow/toggle/', api_follow_toggle, name='api_follow_toggle'),
+    path('api/follow/list/', api_follow_list, name='api_follow_list'),
+    path('api/users/discover/', api_discover_users, name='api_discover_users'),
     path('api/feed/', api_feed, name='api_feed'),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+
 

@@ -322,3 +322,95 @@ def api_delete_memory(request):
 
     deleted, _ = UserMemory.objects.filter(id=mem_id, user=user).delete()
     return JsonResponse({'deleted': bool(deleted)})
+
+# --- FOLLOWERS & DISCOVER API ENDPOINTS ---
+def _serialize_follow_user(request, u, viewer=None):
+    dp_url = request.build_absolute_uri(u.profile_pic.url) if getattr(u, 'profile_pic', None) else ''
+    is_following = viewer.following.filter(id=u.id).exists() if viewer else False
+    follows_you = u.following.filter(id=viewer.id).exists() if viewer else False
+    return {
+        'id': u.id,
+        'username': u.first_name or u.username or u.email.split('@')[0],
+        'handle': u.username,
+        'email': u.email,
+        'bio': getattr(u, 'bio', '') or '',
+        'mood': getattr(u, 'mood', 'chill') or 'chill',
+        'profile_pic': dp_url,
+        'followers_count': u.followers.count(),
+        'following_count': u.following.count(),
+        'is_following': is_following,
+        'is_mutual': is_following and follows_you,
+    }
+
+@csrf_exempt
+def api_follow_toggle(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        data = json.loads(request.body or '{}')
+    except Exception:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    email = data.get('email', '').strip().lower()
+    target_email = data.get('target_email', '').strip().lower()
+    target_id = data.get('target_id')
+
+    me = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not me:
+        return JsonResponse({'error': 'Current user not found'}, status=404)
+
+    target = None
+    if target_id:
+        target = CustomUser.objects.filter(id=target_id).first()
+    if not target and target_email:
+        target = CustomUser.objects.filter(email=target_email).first() or CustomUser.objects.filter(username=target_email).first()
+
+    if not target or target.id == me.id:
+        return JsonResponse({'error': 'Invalid target user'}, status=400)
+
+    if target.followers.filter(id=me.id).exists():
+        target.followers.remove(me)
+        following = False
+    else:
+        target.followers.add(me)
+        following = True
+
+    is_mutual = following and me.followers.filter(id=target.id).exists()
+    return JsonResponse({
+        'following': following,
+        'is_mutual': is_mutual,
+        'target_followers_count': target.followers.count(),
+        'my_following_count': me.following.count(),
+        'my_followers_count': me.followers.count(),
+    })
+
+@csrf_exempt
+def api_follow_list(request):
+    email = request.GET.get('email', '').strip().lower()
+    viewer_email = request.GET.get('viewer', email).strip().lower()
+    user = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    viewer = CustomUser.objects.filter(email=viewer_email).first() or user
+    if not user:
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+    followers = [_serialize_follow_user(request, u, viewer) for u in user.followers.all()]
+    following = [_serialize_follow_user(request, u, viewer) for u in user.following.all()]
+    return JsonResponse({
+        'followers_count': len(followers),
+        'following_count': len(following),
+        'followers': followers,
+        'following': following,
+    })
+
+@csrf_exempt
+def api_discover_users(request):
+    email = request.GET.get('email', '').strip().lower()
+    q = request.GET.get('q', '').strip()
+    me = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    qs = CustomUser.objects.all()
+    if me:
+        qs = qs.exclude(id=me.id)
+    if q:
+        qs = qs.filter(username__icontains=q) | qs.filter(first_name__icontains=q) | qs.filter(email__icontains=q)
+    users = [_serialize_follow_user(request, u, me) for u in qs.distinct().order_by('-date_joined')[:25]]
+    return JsonResponse({'users': users})

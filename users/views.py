@@ -1,4 +1,4 @@
-import json
+﻿import json
 import base64
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate, get_user_model
@@ -175,12 +175,13 @@ def _get_active_friend_payload(user):
                 'email': f.email,
                 'username': f.first_name or f.username.split('@')[0],
                 'dp': dp_url,
-                'expires_at': user.link_expires_at.isoformat()
+                'expires_at': user.link_expires_at.isoformat(),
+            'duo_streak': user.duo_streak
             }
         else:
             user.linked_friend = None
             user.link_expires_at = None
-            user.save(update_fields=['linked_friend', 'link_expires_at'])
+            user.duo_streak = 0; user.last_duo_post_date = None; user.last_streak_updated_date = None; user.save(update_fields=['linked_friend', 'link_expires_at', 'duo_streak', 'last_duo_post_date', 'last_streak_updated_date'])
     return None
 
 @csrf_exempt
@@ -203,7 +204,7 @@ def api_link_friend(request):
     if duration == 'unlink' or not friend_query:
         user.linked_friend = None
         user.link_expires_at = None
-        user.save(update_fields=['linked_friend', 'link_expires_at'])
+        user.duo_streak = 0; user.last_duo_post_date = None; user.last_streak_updated_date = None; user.save(update_fields=['linked_friend', 'link_expires_at', 'duo_streak', 'last_duo_post_date', 'last_streak_updated_date'])
         return JsonResponse({'message': 'Unlinked', 'linked_friend': None})
 
     durations = {
@@ -226,7 +227,7 @@ def api_link_friend(request):
 
     user.linked_friend = friend
     user.link_expires_at = timezone.now() + durations[duration]
-    user.save(update_fields=['linked_friend', 'link_expires_at'])
+    user.duo_streak = 0; user.last_duo_post_date = None; user.last_streak_updated_date = None; user.save(update_fields=['linked_friend', 'link_expires_at', 'duo_streak', 'last_duo_post_date', 'last_streak_updated_date'])
 
     return JsonResponse({
         'message': 'Friend linked!',

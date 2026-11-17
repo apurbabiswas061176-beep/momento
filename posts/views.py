@@ -72,6 +72,7 @@ def api_create_post(request):
     if not user or not image_file:
         return JsonResponse({'error': 'Valid user email and image are required'}, status=400)
     post = Post.objects.create(author=user, image=image_file, caption=caption)
+        user.record_duo_activity()
     return JsonResponse({
         'message': 'Post created',
         'id': post.id,
@@ -93,6 +94,7 @@ def api_create_story(request):
     if not user or not image_file:
         return JsonResponse({'error': 'Valid user email and image are required'}, status=400)
     story = Story.objects.create(author=user, image=image_file)
+        user.record_duo_activity()
     return JsonResponse({
         'message': 'Story created',
         'id': story.id,
@@ -122,3 +124,4 @@ def api_feed(request):
             'created_at': s.created_at.isoformat()
         } for s in stories]
     })
+

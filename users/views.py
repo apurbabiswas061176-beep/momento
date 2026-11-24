@@ -414,3 +414,64 @@ def api_discover_users(request):
         qs = qs.filter(username__icontains=q) | qs.filter(first_name__icontains=q) | qs.filter(email__icontains=q)
     users = [_serialize_follow_user(request, u, me) for u in qs.distinct().order_by('-date_joined')[:25]]
     return JsonResponse({'users': users})
+
+from django.db.models import Q
+from .models import DirectMessage
+
+@csrf_exempt
+def api_messages_threads(request):
+    email = request.GET.get('email', '').strip().lower()
+    me = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    if not me:
+        return JsonResponse({'threads': {}})
+    msgs = DirectMessage.objects.filter(Q(sender=me) | Q(recipient=me)).select_related('sender', 'recipient').order_by('created_at')
+    threads = {}
+    for m in msgs:
+        other = m.recipient if m.sender_id == me.id else m.sender
+        uname = other.username
+        if uname not in threads:
+            threads[uname] = []
+        threads[uname].append({
+            'from': 'me' if m.sender_id == me.id else 'them',
+            'text': m.text,
+            'created_at': m.created_at.strftime('%H:%M')
+        })
+    return JsonResponse({'threads': threads})
+
+@csrf_exempt
+def api_messages_thread(request):
+    email = request.GET.get('email', '').strip().lower()
+    other_q = request.GET.get('user', '').strip()
+    me = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    other = CustomUser.objects.filter(username__iexact=other_q).first() or CustomUser.objects.filter(email__iexact=other_q).first()
+    if not me or not other:
+        return JsonResponse({'messages': []})
+    msgs = DirectMessage.objects.filter(
+        (Q(sender=me) & Q(recipient=other)) | (Q(sender=other) & Q(recipient=me))
+    ).order_by('created_at')
+    data = [{
+        'from': 'me' if m.sender_id == me.id else 'them',
+        'text': m.text,
+        'created_at': m.created_at.strftime('%H:%M')
+    } for m in msgs]
+    return JsonResponse({'messages': data, 'username': other.username})
+
+@csrf_exempt
+def api_messages_send(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'POST required'}, status=405)
+    try:
+        body = json.loads(request.body.decode('utf-8'))
+    except Exception:
+        body = request.POST
+    email = (body.get('email') or '').strip().lower()
+    to_user = (body.get('to') or '').strip()
+    text = (body.get('text') or '').strip()
+    if not text:
+        return JsonResponse({'error': 'Empty message'}, status=400)
+    me = CustomUser.objects.filter(email=email).first() or CustomUser.objects.filter(username=email).first()
+    other = CustomUser.objects.filter(username__iexact=to_user).first() or CustomUser.objects.filter(email__iexact=to_user).first()
+    if not me or not other:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    msg = DirectMessage.objects.create(sender=me, recipient=other, text=text)
+    return JsonResponse({'ok': True, 'message': {'from': 'me', 'text': msg.text, 'created_at': msg.created_at.strftime('%H:%M')}})

@@ -1,3 +1,4 @@
+from users.views import api_follow_toggle, api_follow_list, api_discover_users, api_messages_threads, api_messages_thread, api_messages_send
 from django.contrib import admin
 from django.urls import path, re_path
 from django.views.static import serve
@@ -37,6 +38,7 @@ urlpatterns = [
     path('api/messages/send/', api_messages_send, name='api_messages_send'),
     re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+
 
 
 
